@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RunnerDeck</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <img class="logo-img" src="logo.png" alt="" width="34" height="34">
+      <div>
+        <h1>RunnerDeck</h1>
+        <div class="sub" id="host">Self-hosted CI runners</div>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="dashboard" aria-selected="true">Dashboard</button>
+      <button role="tab" data-tab="controls" aria-selected="false">Controls</button>
+      <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
+    </nav>
+    <div class="live"><span class="dot" id="dot"></span><span id="updated">Connecting…</span></div>
+  </header>
+
+  <div class="banner bad" id="downBanner" hidden></div>
+  <div class="banner" id="banner" hidden></div>
+
+  <!-- ============================== dashboard -->
+  <section id="tab-dashboard">
+    <div class="grid stats">
+      <div class="card">
+        <div class="label">Machine CPU</div>
+        <div class="big"><span id="cpu">–</span><small>%</small></div>
+        <div class="bar"><i id="cpuBar" style="width:0"></i></div>
+        <div class="meta" id="cores">&nbsp;</div>
+      </div>
+      <div class="card">
+        <div class="label">Memory</div>
+        <div class="big"><span id="ram">–</span><small>GB</small></div>
+        <div class="bar"><i id="ramBar" style="width:0"></i></div>
+        <div class="meta" id="ramMeta">&nbsp;</div>
+      </div>
+      <div class="card">
+        <div class="label">Disk budget (runners)</div>
+        <div class="big"><span id="cap">–</span><small>GB</small></div>
+        <div class="bar"><i id="capBar" style="width:0"></i></div>
+        <div class="meta" id="capMeta">&nbsp;</div>
+      </div>
+    </div>
+
+    <div class="grid runners" id="runners"></div>
+
+    <div class="grid two">
+      <div class="card">
+        <div class="label">CPU, last <span id="histMin">15</span> minutes</div>
+        <svg class="chart" id="chart" viewBox="0 0 600 220" preserveAspectRatio="none"></svg>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="card">
+        <div class="label">Disk usage by folder</div>
+        <table id="items"></table>
+        <div class="label" style="margin-top:16px">GitHub registrations</div>
+        <table id="gh"></table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="label">Supervisor log</div>
+      <div class="log" id="log"></div>
+    </div>
+  </section>
+
+  <!-- ============================== controls -->
+  <section id="tab-controls" hidden>
+    <div class="card section">
+      <h2>GitHub runners</h2>
+      <p class="help">Stopping or pausing takes idle runners offline within about 30 seconds. A job that is already running always finishes first.</p>
+      <div class="row">
+        <div class="what"><b>Pause all GitHub runners</b><span>No new jobs on this machine; they wait in GitHub's queue.</span></div>
+        <label class="switch" title="Pause all"><input type="checkbox" id="pauseAll"><span></span></label>
+      </div>
+      <div id="slotRows"></div>
+    </div>
+
+    <div class="card section" id="tcCard">
+      <h2>TeamCity agent</h2>
+      <p class="help">Stopping waits for a running build to finish, then stops the agent service.</p>
+      <div class="row">
+        <div class="what"><b class="nt" id="tcName">TeamCity agent</b><span id="tcState">–</span></div>
+        <button class="btn" id="tcBtn">–</button>
+      </div>
+    </div>
+
+    <div class="card section">
+      <h2>Free up disk space</h2>
+      <p class="help">The supervisor runs the clean-up within about 30 seconds. Caches are only cleared while no job or build is running; they are rebuilt by the next build, which is then slower.</p>
+      <div class="row">
+        <div class="what"><b>Quick clean</b><span>Old logs, idle runner folders, the TeamCity agent's idle checkouts.</span></div>
+        <button class="btn" data-prune="quick">Run</button>
+      </div>
+      <div class="row">
+        <div class="what"><b>Deep clean (capped drive)</b><span>Also clears temp folders and caches in the runner accounts' profiles.</span></div>
+        <button class="btn" data-prune="deep">Run</button>
+      </div>
+      <div class="row">
+        <div class="what"><b>Deep clean everything</b><span>Also clears the shared caches on the tools drive: npm, pnpm store, pip, NuGet, Cargo registry, tool cache. The Rust toolchain and Python are kept.</span></div>
+        <button class="btn danger" data-prune="deepAll">Run</button>
+      </div>
+      <div class="actions"><span class="msg" id="pruneMsg"></span></div>
+    </div>
+  </section>
+
+  <!-- ============================== settings -->
+  <section id="tab-settings" hidden>
+    <div class="card section">
+      <h2>App</h2>
+      <div class="row">
+        <div class="what"><b>Start with Windows</b><span>Opens in the tray when you sign in.</span></div>
+        <label class="switch"><input type="checkbox" id="autostart"><span></span></label>
+      </div>
+      <div class="row">
+        <div class="what"><b>Desktop widget</b><span>A small live card on your desktop. Drag it anywhere.</span></div>
+        <label class="switch"><input type="checkbox" id="widget"><span></span></label>
+      </div>
+      <div class="row">
+        <div class="what"><b>Keep widget on top</b><span>Stay above other windows instead of sitting on the desktop.</span></div>
+        <label class="switch"><input type="checkbox" id="widgetTop"><span></span></label>
+      </div>
+      <div class="row">
+        <div class="what"><b>Widget position on start</b><span>Where the widget appears each time RunnerDeck starts.</span></div>
+        <select id="widgetCorner" class="select">
+          <option value="topLeft">Top Left</option>
+          <option value="topRight">Top Right</option>
+          <option value="bottomLeft">Bottom Left</option>
+          <option value="bottomRight">Bottom Right</option>
+          <option value="remember">Remember Where I Put It</option>
+        </select>
+      </div>
+      <div class="fields">
+        <div class="field">
+          <label for="toolsRoot">Runner tooling folder</label>
+          <input type="text" id="toolsRoot" spellcheck="false">
+          <small>Holds The Runner Config And State Folders.</small>
+        </div>
+        <div class="field">
+          <label for="dashUrl">Dashboard service</label>
+          <input type="text" id="dashUrl" spellcheck="false">
+          <small>Local Address Only (This Machine).</small>
+        </div>
+        <div class="field">
+          <label for="poll">Refresh every (seconds)</label>
+          <input type="number" id="poll" min="1" max="60" step="1">
+        </div>
+      </div>
+      <div class="actions"><button class="btn primary" id="saveApp">Save</button><button class="btn" id="openBrowser">Open dashboard in browser</button><span class="msg" id="appMsg"></span></div>
+    </div>
+
+    <div class="card section">
+      <h2>Runner settings</h2>
+      <p class="help">Saved to <code id="cfgPath">config/runners.json</code>. The supervisor picks changes up within about 30 seconds.</p>
+      <div class="fields">
+        <div class="field">
+          <label for="hardCap">Hard cap (GB)</label>
+          <input type="number" id="hardCap" min="2" max="500" step="0.5">
+          <small>Over this, caches are pruned and the largest GitHub job is stopped.</small>
+        </div>
+        <div class="field">
+          <label for="soft">Prune above (GB)</label>
+          <input type="number" id="soft" min="1" step="0.5">
+          <small>Automatic clean-up starts above this.</small>
+        </div>
+        <div class="field">
+          <label for="minFree">Room needed per job (GB)</label>
+          <input type="number" id="minFree" min="0.5" step="0.5">
+          <small>A runner only takes a job with this much room under the cap.</small>
+        </div>
+        <div class="field">
+          <label for="logDays">Keep logs (days)</label>
+          <input type="number" id="logDays" min="1" max="90" step="1">
+        </div>
+        <div class="field">
+          <label for="watchdog">Check every (seconds)</label>
+          <input type="number" id="watchdog" min="10" max="300" step="5">
+          <small>How often the supervisor measures and restarts runners.</small>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="what"><b>Keep the GitHub runner up to date</b><span>Downloads the latest runner release daily (checksum-verified).</span></div>
+        <label class="switch"><input type="checkbox" id="autoUpdate"><span></span></label>
+      </div>
+      <div class="actions"><button class="btn primary" id="saveRunner">Save runner settings</button><span class="msg" id="runnerMsg"></span></div>
+    </div>
+
+    <div class="card section">
+      <h2>About this machine</h2>
+      <dl class="facts" id="facts"></dl>
+    </div>
+  </section>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

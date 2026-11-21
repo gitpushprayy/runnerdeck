@@ -1,0 +1,24 @@
+[package]
+name = "runnerdeck"
+version = "0.1.0"
+description = "Tray app and dashboard for self-hosted Windows CI runners"
+edition = "2021"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "macos-private-api", "image-png"] }
+tauri-plugin-autostart = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-window-state = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+ureq = { version = "2", default-features = false }
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+strip = true
+panic = "abort"

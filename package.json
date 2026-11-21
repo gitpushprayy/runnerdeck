@@ -1,0 +1,16 @@
+{
+  "name": "runnerdeck",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Tray app and dashboard for self-hosted Windows CI runners (GitHub Actions + TeamCity)",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build:win": "tauri build --no-bundle",
+    "build:mac": "tauri build --bundles app,dmg",
+    "icons": "tauri icon app-icon.png"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
